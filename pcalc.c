@@ -1,147 +1,122 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/shm.h>
-#include <sys/ipc.h>
-#include <string.h>
-#include <unistd.h>
+#include "pcalc.h"
 
-typedef struct operation{
-	int n1;
-	char op;
-	int n2;
-}operation;
-
-int read_integer(int fd){
-	char c[1], buf[64];
-	char *temp = buf;
-	
-	if(read(fd,c,1) == -1 || *c == '\n')
-			exit(1);
-
-	while(*c != '\n' || *c != ' '){
-		
-		if((*c >= '0' && *c <= '9') )
-			*(temp++) = *c;
-		else
-			exit(1);
-
-		if(read(fd,c,1) == -1)
-			exit(1);
-	}
-	*temp = '\0';
-	return atoi(buf);
-}	
-
-void init_sh_mem(key_t *mem_key, int *mem_id, operation **operations ,int lines){
-	if((*mem_key = ftok("calc.c", 1)) == -1)
-      exit(2013);
-
-    if((*mem_id = shmget(*mem_key, lines * sizeof(operation), 0666|IPC_CREAT|IPC_EXCL)) == -1) 
-      exit(6);
-
-    if((*operations = (operation*) shmat(*mem_id, NULL, 0)) == (void *)-1)
-      exit(18);
+void P(int sem_num){
+  
+  struct sembuf op; 
+  op.sem_num = sem_num;
+  op.sem_op = -1;
+  op.sem_flg = 0;
+  if(semop(sem_id, &op, 1) == -1){
+    perror("wait");
+    exit(1);
+  }
 }
 
-int is_operator(char c){
-	return (c == '+' || c == '-' || c == '*' || c == '/');
+void V(int sem_num){
+  struct sembuf op; 
+  op.sem_num = sem_num;
+  op.sem_op = 1;
+  op.sem_flg = 0;
+  if(semop(sem_id, &op, 1) == -1){
+   perror("wait");
+   exit(1);
+  }
 }
 
-char read_remaining_line(int fd, operation *cursor){
-	char c[1], buf[64], operator;
-	char *aux = buf;
-	
-	if(read(fd,c,1) == -1 || !is_operator(*c))
-			exit(1);
-	operator = *c;
-	
-	if(read(fd,c,1) == -1 ) // da mettere a novanta
-			exit(1);
+void child_finish(){
+  //più avanti
 
-	if(read(fd,c,1) == -1 || *c == '\n')
-			exit(1);
-
-	while(*c != '\n' && *c != EOF){
-		
-		if((*c >= '0' && *c <= '9') )
-			*(aux++) = *c;
-		else
-			exit(1);
-
-		if(read(fd,c,1) == -1)
-			exit(1);
-	}
-	*aux = '\0';
-	cursor->op = operator;
-	cursor->n2 = atoi(buf);
-	
-	return *c;
 }
 
-char write_line(int fd, operation *cursor){
-	cursor->n1 = read_integer(fd);
-	return read_remaining_line(fd, cursor);	
-}
-void copy_operations(int fd, int *proc_id, operation **operations){
-	char c, buf[64];
-	int i = 0;
-	operation * cursor = *operations;
-	c = ' ';
-	while(c){
-		
-		proc_id[i++] = read_integer(fd);
-		c = write_line(fd, cursor);
-		
-		cursor += sizeof(operation);
-	}
-
+void init_sem(key_t *sem_key, int n_proc, int lines){
+  int i;
+  if((*sem_key = ftok("pcalc.c", 2)) == -1){
+    perror("ftok");
+    exit(1); 
+  }
+  
+  if((sem_id = semget(*sem_key, n_proc + 2, 0666|IPC_CREAT|IPC_EXCL)) == -1){
+      perror("semget");
+      exit(1);
+  }
+  
+  union semun{
+   int val;
+   struct semid_ds * buffer;
+   unsigned short * array;
+  }arg;
+  
+  arg.array = (u_short *)malloc((n_proc + 2) * sizeof(u_short));
+  
+  for(i = 0;i < n_proc;++i){
+   arg.array[i] = 0;
+  }
+  
+  arg.array[n_proc] = n_proc;
+  arg.array[n_proc + 1] = lines;
+  
+  if(semctl(sem_id, 0, SETALL, arg) == -1){
+   perror("semctl");
+   exit(1);
+  }
+  free(arg.array);
 }
 
 void main(int argc, char *argv[]){
   int fd,i,n,chars,lines,n_proc;  
   int *proc_id;
-  char buf[1], super_buf[256];
   pid_t *procs;
+  char buf[1], super_buf[256];
   operation *operations;
   key_t mem_key, sem_key;
-  int mem_id;
-
-	chars = i = 0;
-	lines = 1;
+	
+  chars = i = 0;
+  lines = -1;
   if(argc == 1){
     char *str = "Inserisci nome file di configurazione: ";
     write(1, str, strlen(str));
     fflush(stdout);
-    //scanf
   }
-  else if(argc == 2){
+  
+  else if(argc == 2){		
     if((fd = open(argv[1],O_RDONLY, S_IRUSR)) == -1);
-      //      syserr("open");
     
     while((n = read(fd,buf, 1)) > 0){//controllo per la sintassi
       chars++;
       if(*buf == '\n')
-				lines++;
+	lines++;
     }	
-		lseek(fd, -chars, SEEK_END);
-
-		n_proc = read_integer(fd);
+    lseek(fd, -chars, SEEK_END);
 		
-		procs = (pid_t *)malloc(n_proc * sizeof(pid_t));
+    n_proc = read_integer(fd);
+    procs = (pid_t *)malloc(n_proc * sizeof(pid_t));
     proc_id = (int *)malloc(lines * sizeof(int));
+	
+    init_sh_mem(&mem_key, &operations,lines);
+    copy_operations(fd, proc_id,  &operations,lines);
 
-		init_sh_mem(&mem_key, &mem_id, &operations,lines);
+    for(i = 0; i<lines*sizeof(operation); i += sizeof(operation))
+      printf("%d %c %d\n",(operations +i)->num1, (operations+i)->op,(operations +i)->num2);    
 
-		
-		
+    init_sem(&mem_key, n_proc, lines);
     
-   /* if((sem_key = ftok(argv[0], 2)) == -1)
-      exit(2099);*/
-
-	}
-	else
+    union semun{
+      int val;
+      struct semid_ds * buffer;
+      unsigned short * array;
+    }arg;
+    
+    semctl(sem_id, 0, GETALL, arg);
+    arg.array = (u_short *)malloc((n_proc + 2) * sizeof(u_short));
+ 
+    for(i = 0;i < n_proc + 2;++i){
+     printf("%d ", arg.array[i] );
+    }      
+    printf("\n");
+      
+    shmctl(mem_id, IPC_RMID, 0);
+    semctl(sem_id, 0, IPC_RMID);
+  }
+  else
     exit(1);
 }
