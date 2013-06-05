@@ -1,77 +1,15 @@
 #include "pcalc.h"
 
-void P(int sem_num){
-  
-  struct sembuf op; 
-  op.sem_num = sem_num;
-  op.sem_op = -1;
-  op.sem_flg = 0;
-  if(semop(sem_id, &op, 1) == -1){
-    perror("wait");
-    exit(1);
-  }
-}
-
-void V(int sem_num){
-  struct sembuf op; 
-  op.sem_num = sem_num;
-  op.sem_op = 1;
-  op.sem_flg = 0;
-  if(semop(sem_id, &op, 1) == -1){
-   perror("wait");
-   exit(1);
-  }
-}
-
-void child_finish(){
-  //più avanti
-
-}
-
-void init_sem(key_t *sem_key, int n_proc, int lines){
-  int i;
-  if((*sem_key = ftok("pcalc.c", 2)) == -1){
-    perror("ftok");
-    exit(1); 
-  }
-  
-  if((sem_id = semget(*sem_key, n_proc + 2, 0666|IPC_CREAT|IPC_EXCL)) == -1){
-      perror("semget");
-      exit(1);
-  }
-  
-  union semun{
-   int val;
-   struct semid_ds * buffer;
-   unsigned short * array;
-  }arg;
-  
-  arg.array = (u_short *)malloc((n_proc + 2) * sizeof(u_short));
-  
-  for(i = 0;i < n_proc;++i){
-   arg.array[i] = 0;
-  }
-  
-  arg.array[n_proc] = n_proc;
-  arg.array[n_proc + 1] = lines;
-  
-  if(semctl(sem_id, 0, SETALL, arg) == -1){
-   perror("semctl");
-   exit(1);
-  }
-  free(arg.array);
-}
-
 void main(int argc, char *argv[]){
-  int fd,i,n,chars,lines,n_proc;  
+  int fd,n_proc,n,i = 0, chars = 0, lines = -1;  
   int *proc_id;
   pid_t *procs;
   char buf[1], super_buf[256];
   operation *operations;
+  op_addr *addresses;
   key_t mem_key, sem_key;
-	
-  chars = i = 0;
-  lines = -1;
+  pid_t status;
+  
   if(argc == 1){
     char *str = "Inserisci nome file di configurazione: ";
     write(1, str, strlen(str));
@@ -89,10 +27,12 @@ void main(int argc, char *argv[]){
     lseek(fd, -chars, SEEK_END);
 		
     n_proc = read_integer(fd);
+    int available_workers = 2*n_proc;
+    int remaining_work = 2*n_proc +1;
     procs = (pid_t *)malloc(n_proc * sizeof(pid_t));
-    proc_id = (int *)malloc(lines * sizeof(int));
+    proc_id = (int *)malloc(lines * sizeof(int));    
 	
-    init_sh_mem(&mem_key, &operations,lines);
+    init_sh_mem(&mem_key, &operations,&addresses,lines,n_proc);
     copy_operations(fd, proc_id,  &operations,lines);
 
     for(i = 0; i<lines*sizeof(operation); i += sizeof(operation))
@@ -105,15 +45,44 @@ void main(int argc, char *argv[]){
       struct semid_ds * buffer;
       unsigned short * array;
     }arg;
-    
+    arg.array = (u_short *)malloc((2*n_proc + 2) * sizeof(u_short)); 
     semctl(sem_id, 0, GETALL, arg);
-    arg.array = (u_short *)malloc((n_proc + 2) * sizeof(u_short));
+   
  
-    for(i = 0;i < n_proc + 2;++i){
+    for(i = 0;i < 2*n_proc + 2;++i){
      printf("%d ", arg.array[i] );
     }      
     printf("\n");
+
+    for(i = 0;i < n_proc;++i){
+      if((status = fork()) == -1){
+	perror("fork");
+	exit(1);
+      }
+
+      if(status == 0){
+	break;
+      }
+    }
+    
+    if(status == 0){
+      start(sem_id, 2*i, addresses + i*sizeof(op_addr), available_workers, remaining_work);
+      exit(0);
+    }
+             
+    for(i= 0; i < lines; ++i){
+      // P(proc_id[i]);// P speciale NO WAIT da riscrivere
+      P(2*(proc_id[i]-1)+1);
       
+      *(addresses + (proc_id[i] - 1)*sizeof(op_addr)) = operations+i*sizeof(operation);
+      
+      V(2*(proc_id[i]-1)+1);
+      V(2*(proc_id[i]-1));
+    }
+
+    for(i = 0; i < n_proc; ++i)
+      wait();
+    printf("Ciao papa, muore.\n");
     shmctl(mem_id, IPC_RMID, 0);
     semctl(sem_id, 0, IPC_RMID);
   }
