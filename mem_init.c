@@ -28,22 +28,27 @@ int read_integer(int fd){
   return atoi(buf);
 }	
 
-void init_sh_mem(key_t *mem_key, operation **operations ,int lines){
+void init_sh_mem(key_t *mem_key, operation **operations ,op_addr **addresses,int lines,int n_proc){
 	
   if((*mem_key = ftok("pcalc.c", 1)) == -1){
     perror("ftok");
     exit(1);
   }
 
-  if((mem_id = shmget(*mem_key, lines * sizeof(operation), 0666|IPC_CREAT|IPC_EXCL)) == -1){
+  if((mem_id = shmget(*mem_key,(lines * sizeof(operation) + n_proc*sizeof(op_addr)), 0666|IPC_CREAT|IPC_EXCL)) == -1){
     perror("shmget");      
     exit(1);
   }
   
-  if((*operations = (operation*) shmat(mem_id, NULL, 0)) == (void *)-1){
+  if((*addresses = (op_addr*) shmat(mem_id, NULL, 0)) == (void *)-1){
     perror("shmat");
     exit(1);
-  }	
+  }
+  /*if((*operations = (operation*) shmat(mem_id, NULL, 0)) == (void *)-1){
+    perror("shmat");
+    exit(1);
+    }*/
+  *operations =(operation *)(addresses + n_proc*sizeof(op_addr));
 }
 
 int is_operator(char c){
