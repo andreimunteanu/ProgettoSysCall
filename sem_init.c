@@ -22,6 +22,16 @@ void V(int sem_num){
    exit(1);
   }
 }
+void wait_results(int sem_num){
+  struct sembuf op; 
+  op.sem_num = sem_num;
+  op.sem_op = 0;
+  op.sem_flg = 0;
+  if(semop(sem_id, &op, 1) == -1){
+   perror("wait results");
+   exit(1);
+  }
+}
 
 void child_finish(const int sem_num1, int sem_num2 ){
   struct sembuf *op = (struct sembuf*)malloc(sizeof(struct sembuf)*2);
