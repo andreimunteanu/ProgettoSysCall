@@ -5,7 +5,7 @@ int read_integer(int fd){
   char *temp = buf;
   
   if(read(fd,c,1) == -1 || *c == '\n'){
-    syserr("read codifica");
+    syserr("bad format");
   }
   
   while(*c != '\n' && *c != ' '){
@@ -13,7 +13,7 @@ int read_integer(int fd){
     if((*c >= '0' && *c <= '9') )
       *(temp++) = *c;
     else{
-      syserr("read codifica");
+      syserr("bad format");
     }
     
     if(read(fd,c,1) == -1){
@@ -24,17 +24,17 @@ int read_integer(int fd){
   return atoi(buf);
 }	
 
-void init_sh_mem(key_t *mem_key1, key_t* mem_key2, operation **operations ,op_addr **addresses,int lines,int n_proc){
+void init_sh_mem(key_t *mem_key1, key_t* mem_key2, operation **operations ,int **offsets,int lines,int n_proc){
 	
   if((*mem_key1 = ftok("pcalc.c", 1)) == -1){
     syserr("ftok1");
   }
 
-  if((mem_id1 = shmget(*mem_key1,(n_proc*sizeof(op_addr)), 0666|IPC_CREAT|IPC_EXCL)) == -1){
+  if((mem_id1 = shmget(*mem_key1,(n_proc*sizeof(int)), 0666|IPC_CREAT|IPC_EXCL)) == -1){
     syserr("shmget1");
   }
   
-  if((*addresses = (op_addr*) shmat(mem_id1, NULL, 0)) == (void *)-1){
+  if((*offsets = (int*) shmat(mem_id1, NULL, 0)) == (void *)-1){
     syserr("shmat1");
   }
   
@@ -99,8 +99,7 @@ void copy_operations(int fd, int *proc_id, operation **operations,int lines){
   while(lines--){
     proc_id[i++] = read_integer(fd);
     write_line(fd, cursor);		
-    //printf("%d %c %d\n",cursor->num1, cursor->op,cursor->num2);
-    cursor += sizeof(operation);
+    cursor++;
   }
 
 }

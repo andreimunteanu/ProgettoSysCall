@@ -36,7 +36,7 @@ float *get_results(operation *operations,int lines){
   int i;
   float *temp = (float*)malloc(lines*sizeof(float));
   for(i = 0; i < lines ; ++i){
-    *(temp+i) = (operations+i*sizeof(operation))->res;
+    *(temp+i) = (operations+i)->res;
   }
   return temp;
 }

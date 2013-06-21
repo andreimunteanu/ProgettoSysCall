@@ -6,7 +6,7 @@ void main(int argc, char *argv[]){
   int *proc_ids;
   float *results;
   operation *operations;
-  op_addr *addresses;
+  int *offsets;
   key_t mem_key1,mem_key2, sem_key;
   pid_t status;
   int id;
@@ -39,7 +39,7 @@ void main(int argc, char *argv[]){
     remaining_work = 2*n_proc +1;
     proc_ids = (int *)malloc(lines * sizeof(int));    
 	
-    init_sh_mem(&mem_key1,&mem_key2, &operations,&addresses,lines,n_proc);
+    init_sh_mem(&mem_key1,&mem_key2, &operations,&offsets,lines,n_proc);
     copy_operations(fd, proc_ids,  &operations,lines);
     init_sem(&sem_key, n_proc, lines);
 
@@ -54,17 +54,11 @@ void main(int argc, char *argv[]){
     
     if(status == 0){
  
-      start(sem_id, 2*i,  addresses + i*sizeof(op_addr), available_workers, remaining_work);
+      start(2*i, offsets + i, operations, available_workers, remaining_work);
      
       exit(0);
     }
-    //Stampa operazioni prima di essere assegnate
-    printf("Operazioni prima dell'assegnazione\n");
-    for(i = 0; i<lines; ++i){
-      j = i*sizeof(operation);
-      printf("%d %c %d\n",(operations +j)->num1, (operations+j)->op,(operations +j)->num2);
-    }
-
+  
     for(i= 0; i < lines; ++i){
       id = (proc_ids[i]-1);
       
@@ -81,18 +75,12 @@ void main(int argc, char *argv[]){
       }
       
       P(2*id+1);
-      *(addresses + id*sizeof(op_addr)) = operations+i*sizeof(operation);
+      *(offsets +id) = i;
       V(2*id);
     }
     
     wait_results(remaining_work);
-    // Stampa operazioni prima di avere computato
-    printf("Array di operazioni dopo avere computato.\n");
-    for(i = 0; i<lines; ++i){
-      j = i*sizeof(operation);
-      printf("%d %c %d\n",(operations +j)->num1, (operations+j)->op,(operations +j)->num2);
-    }
-    
+       
     results = get_results(operations, lines);
     char *file_name = "res.txt";
     if((fd = open(file_name, O_WRONLY|O_CREAT, 0666)) == -1){
@@ -107,7 +95,7 @@ void main(int argc, char *argv[]){
     operations[0].op = 'K';
     
     for(i = 0; i < n_proc; ++i){
-      *(addresses + i*sizeof(op_addr)) = operations;
+      *(offsets +i) = 0;
       V(2*i);
     }
     
