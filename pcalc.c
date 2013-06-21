@@ -1,147 +1,121 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/shm.h>
-#include <sys/ipc.h>
-#include <string.h>
-#include <unistd.h>
-
-typedef struct operation{
-	int n1;
-	char op;
-	int n2;
-}operation;
-
-int read_integer(int fd){
-	char c[1], buf[64];
-	char *temp = buf;
-	
-	if(read(fd,c,1) == -1 || *c == '\n')
-			exit(1);
-
-	while(*c != '\n' || *c != ' '){
-		
-		if((*c >= '0' && *c <= '9') )
-			*(temp++) = *c;
-		else
-			exit(1);
-
-		if(read(fd,c,1) == -1)
-			exit(1);
-	}
-	*temp = '\0';
-	return atoi(buf);
-}	
-
-void init_sh_mem(key_t *mem_key, int *mem_id, operation **operations ,int lines){
-	if((*mem_key = ftok("calc.c", 1)) == -1)
-      exit(2013);
-
-    if((*mem_id = shmget(*mem_key, lines * sizeof(operation), 0666|IPC_CREAT|IPC_EXCL)) == -1) 
-      exit(6);
-
-    if((*operations = (operation*) shmat(*mem_id, NULL, 0)) == (void *)-1)
-      exit(18);
-}
-
-int is_operator(char c){
-	return (c == '+' || c == '-' || c == '*' || c == '/');
-}
-
-char read_remaining_line(int fd, operation *cursor){
-	char c[1], buf[64], operator;
-	char *aux = buf;
-	
-	if(read(fd,c,1) == -1 || !is_operator(*c))
-			exit(1);
-	operator = *c;
-	
-	if(read(fd,c,1) == -1 ) // da mettere a novanta
-			exit(1);
-
-	if(read(fd,c,1) == -1 || *c == '\n')
-			exit(1);
-
-	while(*c != '\n' && *c != EOF){
-		
-		if((*c >= '0' && *c <= '9') )
-			*(aux++) = *c;
-		else
-			exit(1);
-
-		if(read(fd,c,1) == -1)
-			exit(1);
-	}
-	*aux = '\0';
-	cursor->op = operator;
-	cursor->n2 = atoi(buf);
-	
-	return *c;
-}
-
-char write_line(int fd, operation *cursor){
-	cursor->n1 = read_integer(fd);
-	return read_remaining_line(fd, cursor);	
-}
-void copy_operations(int fd, int *proc_id, operation **operations){
-	char c, buf[64];
-	int i = 0;
-	operation * cursor = *operations;
-	c = ' ';
-	while(c){
-		
-		proc_id[i++] = read_integer(fd);
-		c = write_line(fd, cursor);
-		
-		cursor += sizeof(operation);
-	}
-
-}
+#include "pcalc.h"
 
 void main(int argc, char *argv[]){
-  int fd,i,n,chars,lines,n_proc;  
-  int *proc_id;
-  char buf[1], super_buf[256];
-  pid_t *procs;
+  int fd,n_proc,j,i = 0, lines = -1;  // da dichiarare i register
+  int available_workers, remaining_work; 
+  int *proc_ids;
+  float *results;
   operation *operations;
-  key_t mem_key, sem_key;
-  int mem_id;
-
-	chars = i = 0;
-	lines = 1;
-  if(argc == 1){
-    char *str = "Inserisci nome file di configurazione: ";
-    write(1, str, strlen(str));
-    fflush(stdout);
-    //scanf
-  }
-  else if(argc == 2){
-    if((fd = open(argv[1],O_RDONLY, S_IRUSR)) == -1);
-      //      syserr("open");
-    
-    while((n = read(fd,buf, 1)) > 0){//controllo per la sintassi
-      chars++;
-      if(*buf == '\n')
-				lines++;
-    }	
-		lseek(fd, -chars, SEEK_END);
-
-		n_proc = read_integer(fd);
-		
-		procs = (pid_t *)malloc(n_proc * sizeof(pid_t));
-    proc_id = (int *)malloc(lines * sizeof(int));
-
-		init_sh_mem(&mem_key, &mem_id, &operations,lines);
-
-		
-		
-    
-   /* if((sem_key = ftok(argv[0], 2)) == -1)
-      exit(2099);*/
-
-	}
-	else
+  op_addr *addresses;
+  key_t mem_key1,mem_key2, sem_key;
+  pid_t status;
+  int id;
+  char buf[64];
+  char *conf_file;
+  char *filename;
+  
+  if(argc > 2){
     exit(1);
+  }
+  else{
+    if(argc == 1){
+      conf_file = prompt_user("Insert file name: ");
+    }
+    
+    else
+      conf_file = argv[1];
+    
+    if((fd = open(conf_file,O_RDONLY, S_IRUSR)) == -1)
+      syserr("fd");
+    
+    if(argc == 1)
+      free(conf_file);
+    
+    lines = count_lines(fd);    
+    n_proc = read_integer(fd);
+    sprintf(buf, "Main process is spawning %d child%s for %d operations.\n",n_proc,(n_proc-1)?"ren":"",lines);
+    print_to_video(buf);
+    available_workers = 2*n_proc;
+    remaining_work = 2*n_proc +1;
+    proc_ids = (int *)malloc(lines * sizeof(int));    
+	
+    init_sh_mem(&mem_key1,&mem_key2, &operations,&addresses,lines,n_proc);
+    copy_operations(fd, proc_ids,  &operations,lines);
+    init_sem(&sem_key, n_proc, lines);
+
+    for(i = 0;i < n_proc;++i){
+      if((status = fork()) == -1)
+	syserr("fork");
+
+      if(status == 0){
+	break;
+      }
+    }
+    
+    if(status == 0){
+ 
+      start(sem_id, 2*i,  addresses + i*sizeof(op_addr), available_workers, remaining_work);
+     
+      exit(0);
+    }
+    //Stampa operazioni prima di essere assegnate
+    printf("Operazioni prima dell'assegnazione");
+    for(i = 0; i<lines; ++i){
+      j = i*sizeof(operation);
+      printf("%d %c %d\n",(operations +j)->num1, (operations+j)->op,(operations +j)->num2);
+    }
+
+    for(i= 0; i < lines; ++i){
+      id = (proc_ids[i]-1);
+      
+      if(id == -1){
+	P(available_workers);
+	V(available_workers);
+	j = 0;
+	while(get_sem_val((2*j+1)) == 0){
+	  //printf(" %d non disp \n",j+1);
+	  j = (j +1)%n_proc;
+	  //printf("provo %d \n",j+1);
+	}
+	id = j;
+      }
+      
+      P(2*id+1);
+      *(addresses + id*sizeof(op_addr)) = operations+i*sizeof(operation);
+      V(2*id);
+    }
+    
+    wait_results(remaining_work);
+    // Stampa operazioni prima di avere computato
+    printf("Array di operazioni dopo avere computato.\n");
+    for(i = 0; i<lines; ++i){
+      j = i*sizeof(operation);
+      printf("%d %c %d\n",(operations +j)->num1, (operations+j)->op,(operations +j)->num2);
+    }
+    
+    results = get_results(operations, lines);
+    char *file_name = "res.txt";
+    if((fd = open(file_name, O_WRONLY|O_CREAT, 0666)) == -1){
+      syserr("open res.txt");
+    }
+    for(i = 0; i < lines; ++i){
+      char string[64];
+      sprintf(string, "%f\n", *(results+i));
+      print_to_file(fd, string, strlen(string));
+    }
+
+    operations[0].op = 'K';
+    
+    for(i = 0; i < n_proc; ++i){
+      *(addresses + i*sizeof(op_addr)) = operations;
+      V(2*i);
+    }
+    
+    for(i = 0; i < n_proc; ++i)
+      wait();
+
+    shmctl(mem_id1, IPC_RMID, 0);
+    shmctl(mem_id2, IPC_RMID,0);
+    semctl(sem_id, 0, IPC_RMID);
+  }
 }
