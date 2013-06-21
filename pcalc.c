@@ -59,7 +59,7 @@ void main(int argc, char *argv[]){
       exit(0);
     }
     //Stampa operazioni prima di essere assegnate
-    printf("Operazioni prima dell'assegnazione");
+    printf("Operazioni prima dell'assegnazione\n");
     for(i = 0; i<lines; ++i){
       j = i*sizeof(operation);
       printf("%d %c %d\n",(operations +j)->num1, (operations+j)->op,(operations +j)->num2);
