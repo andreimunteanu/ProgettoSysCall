@@ -1,7 +1,20 @@
+/**
+ * @file   sem_init.c
+ * @Author Me (me@example.com)
+ * @date   July, 2013
+ * @brief  Provides functions to initialize and handle an array of semaphores.
+ *
+ * 
+ */
 #include "main.h"
 
+/**
+
+ */
+
 void main(int argc, char *argv[]){
-  int fd,n_proc,j,i = 0, lines = -1;  // da dichiarare i register
+  register int j,i = 0;
+  int fd,n_proc, lines = -1;  // da dichiarare i register
   int available_workers, remaining_work; 
   int *proc_ids;
   float *results;
@@ -35,6 +48,8 @@ void main(int argc, char *argv[]){
     n_proc = read_integer(fd);
     sprintf(buf, "Main process is spawning %d child%s for %d operations.\n",n_proc,(n_proc-1)?"ren":"",lines);
     print_to_video(buf);
+    /*
+     */
     available_workers = 2*n_proc;
     remaining_work = 2*n_proc +1;
     proc_ids = (int *)malloc(lines * sizeof(int));    
@@ -99,6 +114,9 @@ void main(int argc, char *argv[]){
     
     for(i = 0; i < n_proc; ++i)
       wait();
+    
+    free(proc_ids);
+    free(results);
 
     shmctl(mem_id1, IPC_RMID, 0);
     shmctl(mem_id2, IPC_RMID,0);

@@ -13,9 +13,6 @@ clean:
 	@echo Cleaning.
 	@rm -f *.o
 	@rm -f p_calc.x
-#clean:
-#	@echo Cleaning.
-#	@rm -f *.o
 
 p_calc.x: $(OBJS)
 	@echo $@

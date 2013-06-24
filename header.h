@@ -1,3 +1,11 @@
+/**
+ * @file   sem_init.c
+ * @Author Me (me@example.com)
+ * @date   July, 2013
+ * @brief  Provides functions to initialize and handle an array of semaphores.
+ *
+ * 
+ */
 #ifndef HEADER_H
 #define HEADER_H
 

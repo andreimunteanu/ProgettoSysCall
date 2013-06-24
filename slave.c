@@ -1,6 +1,18 @@
+/**
+ * @file   sem_init.c
+ * @Author Me (me@example.com)
+ * @date   July, 2013
+ * @brief  Provides functions to initialize and handle an array of semaphores.
+ *
+ * 
+ */
 #include "header.h"
 
-void start( const int sem_num,int *offset, operation *operations, const int AVAILABLE_WORKERS, const int REMAINING_WORK){
+/**
+
+ */
+
+void start(int sem_num,int *offset, operation *operations, const int AVAILABLE_WORKERS, const int REMAINING_WORK){
   operation *my_operation;
   char str[64];
 

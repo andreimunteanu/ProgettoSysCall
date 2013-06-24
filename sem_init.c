@@ -1,4 +1,20 @@
+/**
+ * @file   sem_init.c
+ * @Author Me (me@example.com)
+ * @date   July, 2013
+ * @brief  Provides functions to initialize and handle an array of semaphores.
+ *
+ * 
+ */
+
 #include "header.h"
+
+/**
+ * @brief Decrements by one the semaphore's value.
+ * @param Specifies the semaphore in the array.
+ *
+ * Decrements by one the semaphore specified by sem_num.
+ */
 
 void P(int sem_num){
   
@@ -11,6 +27,13 @@ void P(int sem_num){
   }
 }
 
+/**
+ * @brief Increments by one the semaphore's value.
+ * @param Specifies the semaphore in the array.
+ *
+ * Increments by one the semaphore specified by sem_num.
+ */
+
 void V(int sem_num){
   struct sembuf op; 
   op.sem_num = sem_num;
@@ -20,6 +43,14 @@ void V(int sem_num){
    syserr("V");
   }
 }
+
+/**
+ * @brief Checks if the semaphore's value is zero.
+ * @param Specifies the semaphore in the array.
+ * 
+ * The father process checks how much work has to be done. 
+ */
+
 void wait_results(int sem_num){
   struct sembuf op; 
   op.sem_num = sem_num;
@@ -30,7 +61,17 @@ void wait_results(int sem_num){
   }
 }
 
-void child_finish(const int sem_num1, int sem_num2 ){
+/**
+ * @brief Increments and decrements two specific semaphores.
+ * @param Specifies the first semaphore in the array.
+ * @param Specifies the second semaphore in the array.
+ *
+ * Used by che child processes once they finished the operation
+ * to increment by one the value of the "available workers semaphore" and
+ * decrement by one the value of the "remaining work semaphore".
+ */
+
+void child_finish(int sem_num1, int sem_num2 ){
   struct sembuf *op = (struct sembuf*)malloc(sizeof(struct sembuf)*2);
   op->sem_num = sem_num1;
   op->sem_op = 1;
@@ -44,10 +85,24 @@ void child_finish(const int sem_num1, int sem_num2 ){
   if(semop(sem_id, op, 2) == -1){
     syserr("child finish");
   }
+  free(op);
 }
 
+/**
+ * @brief Initializes an array of semaphores.
+ * @param Key value of the array. 
+ * @param Number of child processes.
+ * @param Number of operation wich must be done.
+ * 
+ * Initializes 2*n_proc+2 semaphores. 
+ * Each child process has 2 binary semaphores: the first initialized to zero
+ * and the second to 1. The last two are counting semaphores, initialized 
+ * to n_proc and lines. With the first one the father process checks how many
+ * workers are available and with the other how much work is left. 
+ */
+
 void init_sem(key_t *sem_key, int n_proc, int lines){
-  int i;
+  register int i;
   if((*sem_key = ftok("main.c", 2)) == -1){
     syserr("ftok"); 
   }

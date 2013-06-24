@@ -1,4 +1,16 @@
+/**
+ * @file   sem_init.c
+ * @Author Me (me@example.com)
+ * @date   July, 2013
+ * @brief  Provides functions to initialize and handle an array of semaphores.
+ *
+ * 
+ */
 #include "header.h"
+
+/**
+
+ */
 
 int read_integer(int fd){
   char c[1], buf[64];
@@ -23,6 +35,11 @@ int read_integer(int fd){
   *temp = '\0';
   return atoi(buf);
 }	
+
+
+/**
+
+ */
 
 void init_sh_mem(key_t *mem_key1, key_t* mem_key2, operation **operations ,int **offsets,int lines,int n_proc){
 	
@@ -52,9 +69,18 @@ void init_sh_mem(key_t *mem_key1, key_t* mem_key2, operation **operations ,int *
 
 }
 
+/**
+
+ */
+
 int is_operator(char c){
   return (c == '+' || c == '-' || c == '*' || c == '/');
 }
+
+
+/**
+
+ */
 
 void read_remaining_line(int fd, operation *cursor){
   char c[1], buf[64], operator;
@@ -86,10 +112,19 @@ void read_remaining_line(int fd, operation *cursor){
   cursor->num2 = atoi(buf);	
 }
 
+/**
+
+ */
+
 void write_line(int fd, operation *cursor){
   cursor->num1 = read_integer(fd);
   read_remaining_line(fd, cursor);	
 }
+
+
+/**
+
+ */
 
 void copy_operations(int fd, int *proc_id, operation **operations,int lines){
   register int i = 0;
@@ -98,7 +133,7 @@ void copy_operations(int fd, int *proc_id, operation **operations,int lines){
   while(lines--){
     proc_id[i++] = read_integer(fd);
     write_line(fd, cursor);		
-    cursor++;
+    ++cursor;
   }
 
 }

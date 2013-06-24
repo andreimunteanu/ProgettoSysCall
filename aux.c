@@ -1,4 +1,18 @@
+/**
+ * @file   sem_init.c
+ * @Author Me (me@example.com)
+ * @date   July, 2013
+ * @brief  Provides functions to initialize and handle an array of semaphores.
+ *
+ * 
+ */
+
 #include "header.h"
+
+
+/**
+
+ */
 
 void print_to_video(char *str){
   if(write(1,str,strlen(str)) < 0)
@@ -14,6 +28,10 @@ void print_to_file(int fd, char *string, int len){
   }
 }
 
+/**
+
+ */
+
 char *prompt_user(char *msg){
   register int i = 0;
   char *filename = malloc(64*sizeof(char));
@@ -27,10 +45,19 @@ char *prompt_user(char *msg){
   return filename;
 }
 
+
+/**
+
+ */
+
 void syserr(char *str){
   write(3,str,strlen(str));
   exit(1);
 }
+
+/**
+
+ */
 
 float *get_results(operation *operations,int lines){
   register int i;
@@ -40,6 +67,10 @@ float *get_results(operation *operations,int lines){
   }
   return temp;
 }
+
+/**
+
+ */
 
 int get_sem_val(int sem_num){
   int ret;
@@ -54,6 +85,11 @@ int get_sem_val(int sem_num){
   print_to_video(buf);
   return ret;
 }
+
+
+/**
+
+ */
 
 int count_lines(int fd){
   int chars, n, lines;
