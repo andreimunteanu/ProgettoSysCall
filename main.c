@@ -1,14 +1,4 @@
 /**
- * @file   main.c
- * @Author Me (me@example.com)
- * @date   July, 2013
- * @brief  Main function.
- *
- * 
- */
-#include "main.h"
-
-/**
  * @mainpage
  * @author <a href="mailto:niccolo.marastoni@studenti.univr.it">Niccolò Marastoni</a>
  * @author <a href="mailto:andrei.munteanu@studenti.univr.it">Andrei Munteanu</a>
@@ -59,6 +49,7 @@
  * </ol>
  * 
  */
+#include "main.h"
 
 void main(int argc, char *argv[]){
   register int j,i = 0;

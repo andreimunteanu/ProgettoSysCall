@@ -1,6 +1,7 @@
 /**
  * @file   mem_init.c
- * @Author Me (me@example.com)
+ * @author <a href="mailto:niccolo.marastoni@studenti.univr.it">Niccolò Marastoni</a>
+ * @author <a href="mailto:andrei.munteanu@studenti.univr.it">Andrei Munteanu</a>
  * @date   July, 2013
  * @brief  Provides functions in order to: read and parse the configuration file,
  *         initialize and handle the shared memory.

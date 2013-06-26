@@ -1,6 +1,7 @@
 /**
  * @file   slave.c
- * @Author Me (me@example.com)
+ * @author <a href="mailto:niccolo.marastoni@studenti.univr.it">Niccolò Marastoni</a>
+ * @author <a href="mailto:andrei.munteanu@studenti.univr.it">Andrei Munteanu</a> 
  * @date   July, 2013
  * @brief  Contains the function start that will be called by every child process.
  *
