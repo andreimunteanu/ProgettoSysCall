@@ -10,53 +10,41 @@
 
 /**
  * @mainpage
- * @author <a href="mailto:niccolo.marastoni@studenti.univr.it">Niccolò Marastoni</a>
- * @author <a href="mailto:andrei.munteanu@studenti.univr.it">Andrei Munteanu</a>
+ * @author
+ * @author
  * @section Specifica
  * Il programma dovrà leggere un file di configurazione, contenente:
- * <ol>
- * <li> Il numero di processi di calcolo parallelo.
- * <li> I dati di computazione.
- * </ol>
+ *        1. Il numero di processi di calcolo parallelo.
+ *        2. I dati di computazione.
  * Il file di configurazione avra' la seguente struttura:
- * <ul>
- * <li> La prima riga conterra' un intero, che corrisponde al numero di processi paralleli da creare, NPROC.
- * <li> Le altre righe avranno il seguente formato: <id> <num1> <op> <num2>, dove:
- * <ol>
- * <li> id e' il numero di processo parallelo a cui far eseguire l'operazione, se e' maggiore o uguale a 1. Se e' zero, indica che l'operazione dovra' essere eseguita dal primo processo.
- * libero. Si assuma che id corrisponda sempre ad un valore corretto.
- * <li> num1 e num2 sono due numeri interi, corrispondenti ai dato sui quali eseguire
- * l'operazione.
- * <li> op e' un carattere rappresentante l'operazione da eseguire sui due numeri. Caratteri validi
- * per op sono: '+', '-', '*', '/', rappresentanti rispettivamente la somma, la sottrazione, la
- * moltiplicazione e la divisione.
- * </ol>
- * </ul>
- * Ogni processo eseguirà una routine di questo tipo:
- * <ol>
- * <li> Attesa su un semaforo per eseguire un calcolo.
- * <li> Ricezione dei dati e dell'operazione da eseguire, da parte del processo padre.
- * <ul>
- * <li> Se riceve il comando di terminazione, termina la sua esecuzione. Il comando di terminazione e' indicato dal carattere 'K'.
- * </ul>
- * <li> Esecuzione del calcolo.
- * <li> Invio del risultato al padre, e segnalazione al padre che ha finito di calcolare.
- * <li> Attesa bloccante sullo stesso semaforo al punto 1, per attendere il comando successivo.
- * </ol>
- * Il processo padre comunichera' con i processi figlio tramite memoria condivisa.
- * Il processo padre eseguira' in questo modo:
- * <ol>
- * <li> Setup della simulazione, leggendo dal file di configurazione il numero di processori da simulare, creandone i processi relativi, e creando ed inizializzando le eventuali strutture di supporto quali semafori e memoria condivisa. Inoltre, verra' creato un array in cui memorizzare i risultati delle operazioni eseguite. La lunghezza di tale array sara' ricavata dal numero di operazioni lette dal file di configurazione.
- * <li> Entrata in un ciclo che per ogni operazione da simulare effettua quanto segue:
- * <li> Se il comando ha id diverso da zero, attende che il processo numero id sia libero, salva il risultato dell'eventuale calcolo precedente nell'array dei risultati, e poi interagisce con lui passandogli il comando da simulare. Il processo padre non deve attendere che il processore abbia completato la simulazione dell'operazione passata al figlio. 
- * <li> Se l'istruzione ha id 0, trova il primo processore libero ed in caso interagisce con esso, come al punto 1. Altrimenti attende che almeno un processore sia libero, e poi interagisce con esso come al punto 1.
- * <li> Passati tutti i comandi ai figli, attende che i processi figlio abbiano eseguito tutti i loro calcoli.
- * <li> Salva nell'array dei risultati gli ultimi risultati computati, e fa terminare i processi fi glio passando il comando di terminazione 'K'.
- * <li> Attende che tutti i figli abbiano terminato.
- * <li> Stampa su un file di output tutti i risultati.
- * <li> Libera eventuali risorse.
- * <li> Esce.
- * </ol>
+ *        • La prima riga conterra' un intero, che corrisponde al numero di processi paralleli da creare, NPROC.
+ *        • Le altre righe avranno il seguente formato: <id> <num1> <op> <num2>, dove:
+ *              1. id e' il numero di processo parallelo a cui far eseguire l'operazione, se e' maggiore o uguale a 1. Se e' zero, indica che l'operazione dovra' essere eseguita dal primo processo.
+ *libero. Si assuma che id corrisponda sempre ad un valore corretto.
+ *2. num1 e num2 sono due numeri interi, corrispondenti ai dato sui quali eseguire
+ *l'operazione.
+ *3. op e' un carattere rappresentante l'operazione da eseguire sui due numeri. Caratteri validi
+ *per op sono: '+', '-', '*', '/', rappresentanti rispettivamente la somma, la sottrazione, la
+ *moltiplicazione e la divisione.
+ *Ogni processo eseguirà una routine di questo tipo:
+ *1. Attesa su un semaforo per eseguire un calcolo.
+ *2. Ricezione dei dati e dell'operazione da eseguire, da parte del processo padre.
+ *1. Se riceve il comando di terminazione, termina la sua esecuzione. Il comando di terminazione e' indicato dal carattere 'K'.
+ *3. Esecuzione del calcolo.
+ *4. Invio del risultato al padre, e segnalazione al padre che ha finito di calcolare.
+ *5. Attesa bloccante sullo stesso semaforo al punto 1, per attendere il comando successivo.
+ *Il processo padre comunichera' con i processi figlio tramite memoria condivisa.
+ *Il processo padre eseguira' in questo modo:
+ *1. Setup della simulazione, leggendo dal file di configurazione il numero di processori da simulare, creandone i processi relativi, e creando ed inizializzando le eventuali strutture di supporto quali semafori e memoria condivisa. Inoltre, verra' creato un array in cui memorizzare i risultati delle operazioni eseguite. La lunghezza di tale array sara' ricavata dal numero di operazioni lette dal file di configurazione.
+ *2. Entrata in un ciclo che per ogni operazione da simulare effettua quanto segue:
+ *1. Se il comando ha id diverso da zero, attende che il processo numero id sia libero, salva il risultato dell'eventuale calcolo precedente nell'array dei risultati, e poi interagisce con lui passandogli il comando da simulare. Il processo padre non deve attendere che il processore abbia completato la simulazione dell'operazione passata al figlio. 
+ *2. Se l'istruzione ha id 0, trova il primo processore libero ed in caso interagisce con esso, come al punto 1. Altrimenti attende che almeno un processore sia libero, e poi interagisce con esso come al punto 1.
+ *3. Passati tutti i comandi ai figli, attende che i processi figlio abbiano eseguito tutti i loro calcoli.
+ *4. Salva nell'array dei risultati gli ultimi risultati computati, e fa terminare i processi fi glio passando il comando di terminazione 'K'.
+ *5. Attende che tutti i figli abbiano terminato.
+ *6. Stampa su un file di output tutti i risultati.
+ *7. Libera eventuali risorse.
+ *8. Esce.
  * 
  */
 

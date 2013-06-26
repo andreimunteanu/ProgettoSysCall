@@ -1,8 +1,8 @@
 /**
- * @file   sem_init.c
+ * @file   header.h
  * @Author Me (me@example.com)
  * @date   July, 2013
- * @brief  Provides functions to initialize and handle an array of semaphores.
+ * @brief  Definition of the struct operation and global variables.
  *
  * 
  */
@@ -20,6 +20,9 @@
 #include <string.h>
 #include <unistd.h>
 
+/**
+ * Operation struct
+ */
 typedef struct operation{
   int num1;
   char op;
@@ -32,6 +35,20 @@ int sem_id;
 int mem_id1;
 int mem_id2;
 
-void syserr(char *str);
-void print_to_file(int fd, char *string, int len);
+
+/**
+ * @brief Prints on the stderr a string and exits whit "exit code" 1.
+ * @param str the string to print.
+ */
+
+void syserr(const char *str);
+
+/**
+ * @brief Writes in specific file the string.
+ * @param fd file descriptor of the file.
+ * @param string the string to write.
+ * @param len length of the string.
+ *
+ */
+void print_to_file( const int fd, const char *string,const  int len);
 #endif

@@ -3,20 +3,13 @@
  * @Author Me (me@example.com)
  * @date   July, 2013
  * @brief  Provides functions to initialize and handle an array of semaphores.
- *
  * 
+ *  
  */
 
 #include "header.h"
 
-/**
- * @brief Decrements by one the semaphore's value.
- * @param Specifies the semaphore in the array.
- *
- * Decrements by one the semaphore specified by sem_num.
- */
-
-void P(int sem_num){
+void P(const int sem_num){
   
   struct sembuf op; 
   op.sem_num = sem_num;
@@ -26,13 +19,6 @@ void P(int sem_num){
     syserr("P");
   }
 }
-
-/**
- * @brief Increments by one the semaphore's value.
- * @param Specifies the semaphore in the array.
- *
- * Increments by one the semaphore specified by sem_num.
- */
 
 void V(int sem_num){
   struct sembuf op; 
@@ -44,14 +30,7 @@ void V(int sem_num){
   }
 }
 
-/**
- * @brief Checks if the semaphore's value is zero.
- * @param Specifies the semaphore in the array.
- * 
- * The father process checks how much work has to be done. 
- */
-
-void wait_results(int sem_num){
+void wait_results(const int sem_num){
   struct sembuf op; 
   op.sem_num = sem_num;
   op.sem_op = 0;
@@ -61,17 +40,7 @@ void wait_results(int sem_num){
   }
 }
 
-/**
- * @brief Increments and decrements two specific semaphores.
- * @param Specifies the first semaphore in the array.
- * @param Specifies the second semaphore in the array.
- *
- * Used by che child processes once they finished the operation
- * to increment by one the value of the "available workers semaphore" and
- * decrement by one the value of the "remaining work semaphore".
- */
-
-void child_finish(int sem_num1, int sem_num2 ){
+void child_finish(const int sem_num1,const int sem_num2 ){
   struct sembuf *op = (struct sembuf*)malloc(sizeof(struct sembuf)*2);
   op->sem_num = sem_num1;
   op->sem_op = 1;
@@ -88,20 +57,22 @@ void child_finish(int sem_num1, int sem_num2 ){
   free(op);
 }
 
-/**
- * @brief Initializes an array of semaphores.
- * @param Key value of the array. 
- * @param Number of child processes.
- * @param Number of operation wich must be done.
- * 
- * Initializes 2*n_proc+2 semaphores. 
- * Each child process has 2 binary semaphores: the first initialized to zero
- * and the second to 1. The last two are counting semaphores, initialized 
- * to n_proc and lines. With the first one the father process checks how many
- * workers are available and with the other how much work is left. 
- */
+int get_sem_val(const int sem_num){
+  int ret;
+  char buf[64];
+  union semun {
+    int val;
+    struct semid_ds * buffer;
+    unsigned short * array;
+  } arg;
+  ret =semctl(sem_id, sem_num, GETVAL, arg);
+  sprintf(buf, "Child (%d) is %s\n", (sem_num+1)/2, ret?"FREE":"BUSY");
+  print_to_video(buf);
+  return ret;
+}
 
-void init_sem(key_t *sem_key, int n_proc, int lines){
+
+void init_sem(key_t *sem_key, const int n_proc, const int lines){
   register int i;
   if((*sem_key = ftok("main.c", 2)) == -1){
     syserr("ftok"); 
