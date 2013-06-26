@@ -54,17 +54,16 @@
 void main(int argc, char *argv[]){
   register int j,i = 0;
   int fd,n_proc, lines = -1;
-  int available_workers, remaining_work; /*Positions of the counting semaphores.*/ 
-  int *proc_ids; /*Array of the ids of the workers.*/
-  float *results; /*Array of results.*/
-  operation *operations; /*Array of operations.*/
-  int *offsets; /*Array of offsets.*/
+  int available_workers, remaining_work; //Positions of the counting semaphores.
+  int *proc_ids; //Array of the ids of the workers.
+  float *results; //Array of results.
+  operation *operations; //Array of operations.
+  int *offsets; //Array of offsets.
   key_t mem_key1,mem_key2, sem_key; 
   pid_t status;
   int id;
   char buf[64];
-  char *conf_file; /*String that contains the configuration file name.*/
-  char *filename;  /*String that contains the results file name.*/
+  char *conf_file; //String that contains the configuration file name.
   
   if(argc > 2){
     exit(1);
@@ -83,21 +82,21 @@ void main(int argc, char *argv[]){
     if(argc == 1)
       free(conf_file);
     
-    lines = count_lines(fd);     /*Initializes the number of operations.*/
-    n_proc = read_integer(fd);    /*Initializes the number of child processes.*/
+    lines = count_lines(fd);     //Initializes the number of operations.
+    n_proc = read_integer(fd);    //Initializes the number of child processes.
     sprintf(buf, "Main process is spawning %d child%s for %d operations.\n",n_proc,(n_proc-1)?"ren":"",lines);
     print_to_video(buf);
 
-    /*Initializes the positions of the counting semaphores(available workers and remaining work )*/
+    //Initializes the positions of the counting semaphores(available workers and remaining work.
     available_workers = 2*n_proc;  
     remaining_work = 2*n_proc +1;
 
     proc_ids = (int *)malloc(lines * sizeof(int));    
-    /*Initializes array of operations and offsets.*/
+    //Initializes array of operations and offsets.
     init_sh_mem(&mem_key1,&mem_key2, &operations,&offsets,lines,n_proc);
-    /*Stores the read information.*/
+    //Stores the read information.
     copy_operations(fd, proc_ids,  &operations,lines);
-    /*Initializes the array of semaphores.*/
+    //Initializes the array of semaphores.
     init_sem(&sem_key, n_proc, lines);
     
     for(i = 0;i < n_proc;++i){
@@ -116,48 +115,51 @@ void main(int argc, char *argv[]){
       exit(0);
     }
   
-    /*Assigns the operations.*/
+    //Assigns the operations.
     for(i= 0; i < lines; ++i){
       id = (proc_ids[i]-1);
       
-      if(id == -1){/*Finds the first free child process.*/
-	P(available_workers);/*Waits if none available.*/
+      if(id == -1){//Finds the first free child process.
+	P(available_workers);//Waits if none available.
 	V(available_workers);
 	j = 0;
-	while(get_sem_val((2*j+1)) == 0){/*Looks for a free child process.*/
+	while(get_sem_val((2*j+1)) == 0){
 	  j = (j +1)%n_proc;
 	}
 	id = j;
       }
       
-      P(2*id+1);/*If busy waits.*/
-      *(offsets +id) = i;/*Assigns the right offset for the child.*/
-      V(2*id);/*Wakes up the process.*/
+      P(2*id+1);//If busy waits.
+      *(offsets +id) = i;//Assigns the right offset for the child.
+      V(2*id);//Wakes up the process.
     }
     
-    wait_results(remaining_work);/*Waits until all the operations are done.*/
+    wait_results(remaining_work);//Waits until all the operations are done.
        
-    results = get_results(operations, lines);/*Stores the results int the array.*/
-    char *file_name = "res.txt";
+    results = get_results(operations, lines);//Stores the results int the array.
+    close(fd);
+    char *file_name = "res.txt";//String that contains the results file name.
     if((fd = open(file_name, O_WRONLY|O_CREAT, 0666)) == -1){
       syserr("open res.txt");
     }
     for(i = 0; i < lines; ++i){
       char string[64];
       sprintf(string, "%f\n", *(results+i));
-      print_to_file(fd, string, strlen(string));/*Stores the results in the file.*/
+      print_to_file(fd, string, strlen(string));//Stores the results in the file.
     }
 
-    operations[0].op = 'K';/*Assigns the operation Kill.*/
+    operations[0].op = 'K';//Assigns the operation Kill.
     
-    for(i = 0; i < n_proc; ++i){/*Kill every child process.*/
-      *(offsets +i) = 0;/*Assigns the operation.*/
-      V(2*i);/*Wakes up the child process.*/
+    for(i = 0; i < n_proc; ++i){//Kill every child process.
+      *(offsets +i) = 0;//Assigns the operation.
+      V(2*i);//Wakes up the child process.
     }
     
     for(i = 0; i < n_proc; ++i)
       wait();
-    
+
+    close(fd);
+
     free(proc_ids);
     free(results);
 
