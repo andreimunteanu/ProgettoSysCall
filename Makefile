@@ -14,6 +14,10 @@ clean:
 	@rm -f *.o
 	@rm -f p_calc.x
 
+doxygen:
+	@echo Opening doxygen
+	@firefox html/index.html &
+
 p_calc.x: $(OBJS)
 	@echo $@
 	@$(LD) -o $@ $^
@@ -42,4 +46,4 @@ main.h: header.h
 	@echo $@
 	@ touch $@
 
-.PHONY: all clean
+.PHONY: all clean doxygen
