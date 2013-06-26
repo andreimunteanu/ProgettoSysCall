@@ -78,10 +78,9 @@ void init_sh_mem(key_t *mem_key1, key_t* mem_key2, operation **operations ,int *
 }
 
 /**
- * @brief Checks if the character passed is an operator.
- * @param The character to check.
- * @return true (not zero) if c is an operator( +,-,*,/)  
- *         otherwise false (zero).
+ * @brief checks to see if a certain character is among the allowed list of operators
+ * @param c the character to be checked
+ * @return 0 if it's not an operator, an 
  */
 
 int is_operator(char c){
@@ -89,7 +88,7 @@ int is_operator(char c){
 }
 
 /**
- * @brief Reads fro the configuration file op and num2.
+ * @brief Reads op and num2 from the configuration file.
  * @param fd file descriptor of the configuration file.
  * @param cursors pointer to the array of operations.
  *  
@@ -127,10 +126,9 @@ void read_remaining_line(int fd, operation *cursor){
 }
 
 /**
- * @brief Stores one operation in the array of operations.
- * @param fd file descriptor of the configuration file.
- * @param cursor pointer to the array of operations.
- *
+ * @brief reads the first number in the operation and writes it in the first field of the structure
+ * @param fd file descriptor for the configuration file
+ * @param cursor a pointer to the operation
  */
 
 void write_line(int fd, operation *cursor){
