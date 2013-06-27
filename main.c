@@ -91,11 +91,14 @@ void main(int argc, char *argv[]){
     available_workers = 2*n_proc;  
     remaining_work = 2*n_proc +1;
 
-    proc_ids = (int *)malloc(lines * sizeof(int));    
+    proc_ids = (int *)malloc(lines * sizeof(int)); 
+    results = (float*)malloc(lines*sizeof(float));
     //Initializes array of operations and offsets.
     init_sh_mem(&mem_key1,&mem_key2, &operations,&offsets,lines,n_proc);
     //Stores the read information.
     copy_operations(fd, proc_ids,  &operations,lines);
+    for(i = 0; i < lines; ++i)
+      *(offsets+i) = -1;
     //Initializes the array of semaphores.
     init_sem(&sem_key, n_proc, lines);
     
@@ -130,16 +133,23 @@ void main(int argc, char *argv[]){
       }
       
       P(2*id+1);//If busy waits.
+      if(*(offsets+id) >= 0)//Stores the result of the last operation.
+	*(results + *(offsets+id)) = (operations + *(offsets+id))->res;
+
       *(offsets +id) = i;//Assigns the right offset for the child.
       V(2*id);//Wakes up the process.
     }
     
     wait_results(remaining_work);//Waits until all the operations are done.
-       
-    results = get_results(operations, lines);//Stores the results int the array.
+    
+    for(i = 0; i < n_proc; ++i)//Stores the remaining results.
+      if(*(offsets+i) >= 0)
+	*(results + *(offsets+i)) = (operations + *(offsets+i))->res;
+
+    //results = get_results(operations, lines);//Stores the results int the array.
     close(fd);
     char *file_name = "res.txt";//String that contains the results file name.
-    if((fd = open(file_name, O_WRONLY|O_CREAT, 0666)) == -1){
+    if((fd = open(file_name, O_WRONLY|O_CREAT|O_TRUNC, 0666)) == -1){
       syserr("open res.txt");
     }
     for(i = 0; i < lines; ++i){

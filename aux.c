@@ -41,11 +41,3 @@ void syserr(const char *str){
   exit(1);
 }
 
-float *get_results(operation * const operations,const int lines){
-  register int i;
-  float *temp = (float*)malloc(lines*sizeof(float));
-  for(i = 0; i < lines ; ++i){
-    *(temp+i) = (operations+i)->res;
-  }
-  return temp;
-}

@@ -134,13 +134,4 @@ void print_to_video( const char *str);
  */
 char *prompt_user(const char *msg);
 
-/**
- * @brief Creates an array of the results of the operations.
- * @param operations pointer to the array of operations
- * @param lines number of operations.
- * @return pointer to the array of results.
- *
- */
-float *get_results(operation * const operations,const int lines);
-
 #endif
